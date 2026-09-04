@@ -35,4 +35,13 @@ public class GlobalExceptionHandler {
         body.put("errors", fieldErrors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+public ResponseEntity<Map<String, Object>> handleAuthenticationException(
+        org.springframework.security.core.AuthenticationException ex) {
+    Map<String, Object> body = new HashMap<>();
+    body.put("timestamp", Instant.now());
+    body.put("status", HttpStatus.UNAUTHORIZED.value());
+    body.put("error", "Invalid email or password");
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+}
 }
