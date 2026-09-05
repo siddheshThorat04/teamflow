@@ -8,7 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
+import com.teamflow.intial.task.dto.UpdateTaskRequest;
 import java.util.List;
 
 @RestController
@@ -36,4 +36,14 @@ public class TaskController {
         List<TaskResponse> tasks = taskService.getTasksForProject(projectId, authentication.getName());
         return ResponseEntity.ok(tasks);
     }
+    @PatchMapping("/{taskId}")
+public ResponseEntity<TaskResponse> update(
+        @PathVariable Long projectId,
+        @PathVariable Long taskId,
+        @RequestBody UpdateTaskRequest request,
+        Authentication authentication
+) {
+    TaskResponse response = taskService.updateTask(projectId, taskId, request, authentication.getName());
+    return ResponseEntity.ok(response);
+}
 }
