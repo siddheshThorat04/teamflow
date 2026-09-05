@@ -1,1 +1,1 @@
-{"assigneeId":1,"assigneeName":"Test User","createdAt":"2026-09-05T08:05:24.956261Z","description":null,"dueDate":null,"id":2,"priority":"MEDIUM","reporterId":1,"reporterName":"Test User","status":"TODO","taskKey":"WEB-2","title":"Set up CI pipeline"}
+{"token":"eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg4NTk2MzM1LCJleHAiOjE3ODg2ODI3MzV9.Rr-qJtZvcrg8DjUiBayWO4t9yU8TszpqyJOaWuSgvt4xhshnxqOKq-3eQD_UzAYU"}
