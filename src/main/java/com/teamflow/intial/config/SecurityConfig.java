@@ -15,7 +15,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-
+import jakarta.servlet.http.HttpServletResponse;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -54,7 +54,7 @@ public DaoAuthenticationProvider authenticationProvider() {
         return config.getAuthenticationManager();
     }
 
-   @Bean
+    @Bean
 public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
     http
         .csrf(csrf -> csrf.disable())
@@ -63,6 +63,17 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter 
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/auth/**").permitAll()
             .anyRequest().authenticated()
+        )
+        .exceptionHandling(exceptions -> exceptions
+            .accessDeniedHandler((request, response, accessDeniedException) -> {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json");
+                response.getWriter().write(
+                    "{\"timestamp\":\"" + java.time.Instant.now() + "\","
+                    + "\"status\":403,"
+                    + "\"error\":\"" + accessDeniedException.getMessage() + "\"}"
+                );
+            })
         )
         .addFilterBefore(jwtAuthFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 

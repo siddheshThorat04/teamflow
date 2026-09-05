@@ -1,14 +1,11 @@
 package com.teamflow.intial.project;
 
 import com.teamflow.intial.organization.Organization;
-import com.teamflow.intial.organization.OrganizationMemberRepository;
-import com.teamflow.intial.organization.OrganizationRepository;
+import com.teamflow.intial.organization.OrganizationAuthorizationService;
 import com.teamflow.intial.project.dto.CreateProjectRequest;
 import com.teamflow.intial.project.dto.ProjectResponse;
 import com.teamflow.intial.user.User;
-import com.teamflow.intial.user.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,23 +16,13 @@ import java.util.List;
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
-    private final OrganizationRepository organizationRepository;
-    private final OrganizationMemberRepository organizationMemberRepository;
-    private final UserRepository userRepository;
+    private final OrganizationAuthorizationService orgAuth;
 
     @Transactional
     public ProjectResponse createProject(String orgSlug, CreateProjectRequest request, String requesterEmail) {
-        Organization organization = organizationRepository.findBySlug(orgSlug)
-                .orElseThrow(() -> new IllegalArgumentException("Organization not found"));
-
-        User requester = userRepository.findByEmail(requesterEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        boolean isMember = organizationMemberRepository
-                .existsByUserIdAndOrganizationId(requester.getId(), organization.getId());
-        if (!isMember) {
-            throw new AccessDeniedException("You are not a member of this organization");
-        }
+        Organization organization = orgAuth.requireOrganization(orgSlug);
+        User requester = orgAuth.requireUser(requesterEmail);
+        orgAuth.requireMembership(requester.getId(), organization.getId());
 
         String normalizedKey = request.getKey().toUpperCase();
         if (projectRepository.existsByOrganizationIdAndKey(organization.getId(), normalizedKey)) {
@@ -53,17 +40,9 @@ public class ProjectService {
     }
 
     public List<ProjectResponse> getProjectsForOrganization(String orgSlug, String requesterEmail) {
-        Organization organization = organizationRepository.findBySlug(orgSlug)
-                .orElseThrow(() -> new IllegalArgumentException("Organization not found"));
-
-        User requester = userRepository.findByEmail(requesterEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        boolean isMember = organizationMemberRepository
-                .existsByUserIdAndOrganizationId(requester.getId(), organization.getId());
-        if (!isMember) {
-            throw new AccessDeniedException("You are not a member of this organization");
-        }
+        Organization organization = orgAuth.requireOrganization(orgSlug);
+        User requester = orgAuth.requireUser(requesterEmail);
+        orgAuth.requireMembership(requester.getId(), organization.getId());
 
         return projectRepository.findByOrganizationId(organization.getId())
                 .stream()
