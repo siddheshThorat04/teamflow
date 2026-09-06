@@ -1,82 +1,85 @@
 # Teamflow
 
-A full-stack team collaboration and project management platform — a focused take on Jira + Slack + Trello — built as a deep-dive learning project into backend architecture, clean code, and production patterns.
+A full-stack, multi-tenant team collaboration and project management platform — a focused take on Jira + Slack + Trello, built end-to-end from backend architecture through deployment.
+
+**Live App:** https://teamflow-frontend-1zj6.onrender.com
+**API:** https://teamflow-4pug.onrender.com
+**Frontend repo:** https://github.com/siddheshThorat04/teamflow-frontend
+**Backend repo:** https://github.com/siddheshThorat04/teamflow
+
+> Note: hosted on Render's free tier, so the first request after a period of inactivity may take 30-60 seconds to respond while the service spins back up.
 
 ## Stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | React + TypeScript |
-| Backend | Spring Boot (Java) |
+| Frontend | React + TypeScript + Tailwind CSS |
+| Backend | Spring Boot (Java 17) |
 | Database | PostgreSQL |
-| Caching / Presence | Redis |
-| Messaging / Async | Kafka |
-| File Storage | AWS S3 |
-| Containerization | Docker |
+| Auth | JWT (stateless) + Spring Security |
+| Containerization | Docker (multi-stage build) |
+| Deployment | Render (separate frontend/backend services) |
 
-## Project Status
+## Features
 
- Under active development. Currently building the **Users & Authentication** module.
-
-### Completed
-- [x] Project scaffolding (feature-first package structure)
-- [x] Docker-based PostgreSQL setup
-- [x] `User` entity with JPA auditing (`createdAt`/`updatedAt`)
-- [x] Registration endpoint (`POST /api/auth/register`) with validation and BCrypt hashing
-- [x] Login endpoint (`POST /api/auth/login`) with Spring Security `AuthenticationManager`
-- [x] JWT generation and validation (`JwtService`)
-- [x] Stateless JWT authentication filter (`JwtAuthFilter`) protecting all non-auth routes
-
-### In Progress / Up Next
-- [ ] Role-based authorization (`@PreAuthorize`)
-- [ ] Organization / Workspace module
-- [ ] Projects module
-- [ ] Tasks module (core domain)
-- [ ] Real-time comments & notifications (WebSocket)
-- [ ] Redis caching + online presence
-- [ ] Kafka-based async notifications
-- [ ] S3 file attachments
-- [ ] Full Docker Compose setup
+- **Multi-tenant organizations** — users can belong to multiple organizations, each with independent membership and roles (`OWNER` / `ADMIN` / `MEMBER`)
+- **Role-based authorization** — enforced at the service layer; e.g., only `OWNER`/`ADMIN` can add members to an organization
+- **Projects** scoped to organizations, with unique per-org project keys (Jira-style: `WEB-1`, `WEB-2`, ...)
+- **Tasks** with status (`TODO` / `IN_PROGRESS` / `IN_REVIEW` / `DONE`), priority, due dates, assignee/reporter distinction, and sequential per-project numbering
+- **JWT authentication** — registration, login, BCrypt password hashing, stateless token validation on every request
+- **React frontend** — protected routing, JWT session persistence, and a Kanban-style task board consuming the live API
 
 ## Architecture
 
-The backend follows a **feature-first (package-by-feature)** structure rather than layer-first, so each domain's entity, repository, service, controller, and DTOs live together:
+The backend follows a **feature-first (package-by-feature)** structure, so each domain's entity, repository, service, controller, and DTOs live together:
 
 com.teamflow.intial
-├── auth/
-│ ├── AuthController.java
-│ ├── JwtService.java
-│ ├── JwtAuthFilter.java
-│ └── dto/
-├── user/
-│ ├── User.java
-│ ├── Role.java
-│ ├── UserRepository.java
-│ ├── UserService.java
-│ └── dto/
+├── auth/ # JWT generation/validation, login, filter
+├── user/ # User entity, registration
+├── organization/ # Organizations, membership, role-based auth checks
+│ └── OrganizationAuthorizationService.java # shared membership/role checks
+├── project/ # Projects (scoped to organizations)
+├── task/ # Tasks (scoped to projects)
 ├── config/
 │ └── SecurityConfig.java
-├── common/
-│ ├── BaseEntity.java
-│ └── exception/
-│ └── GlobalExceptionHandler.java
-└── IntialApplication.java
+└── common/
+├── BaseEntity.java
+└── exception/GlobalExceptionHandler.java
 
 
 **Key design decisions:**
 - Entities are never returned directly from controllers — dedicated request/response DTOs enforce a clean API boundary and prevent mass-assignment vulnerabilities.
+- Authorization logic (organization membership, role checks) is centralized in `OrganizationAuthorizationService` and reused across Organization, Project, and Task modules, rather than duplicated per-service.
+- Multi-tenancy is modeled via a join entity (`OrganizationMember`) rather than a simple many-to-many, since per-org roles require attributes on the relationship itself.
 - Passwords are hashed with BCrypt; plaintext is never logged, stored, or returned.
-- Authentication is fully stateless (JWT-based, no server-side sessions) for horizontal scalability.
-- A global exception handler (`@RestControllerAdvice`) centralizes error formatting across the whole API.
+- Authentication is fully stateless (JWT-based, no server-side sessions).
+- Configuration (database credentials, JWT secret, port) is fully externalized via environment variables — no secrets committed to the repo.
+- A global exception handler (`@RestControllerAdvice`) centralizes error formatting; Spring Security's own `accessDeniedHandler` is separately configured to ensure authorization failures also return structured JSON (Spring Security's filter-level exceptions bypass `@RestControllerAdvice` by default).
+
+## Project Status
+
+### Completed
+- [x] Multi-module backend: Auth, Organizations, Projects, Tasks
+- [x] JWT authentication with role-based, membership-scoped authorization
+- [x] React frontend: auth flow, dashboard, org/project views, Kanban task board
+- [x] Dockerized backend (multi-stage build) deployed to Render
+- [x] Frontend deployed to Render as a static site
+- [x] CORS configured for cross-origin frontend/backend communication
+
+### Up Next
+- [ ] Task detail view (comments, full edit)
+- [ ] Real-time updates (WebSocket)
+- [ ] Redis caching / online presence
+- [ ] Kafka-based async notifications
+- [ ] S3 file attachments
 
 ## Local Development Setup
 
 ### Prerequisites
-- Java 17+
-- Maven (or use the included `./mvnw` wrapper)
+- Java 17+, Node.js 18+
 - Docker Desktop
 
-### 1. Start PostgreSQL via Docker
+### Backend
 
 ```bash
 docker run --name teamflow-db \
@@ -85,60 +88,41 @@ docker run --name teamflow-db \
   -e POSTGRES_PASSWORD=postgres \
   -p 5432:5432 \
   -d postgres:16
-```
 
-> **Windows users:** if you have a native PostgreSQL service installed, make sure it isn't also bound to port 5432 (`netstat -ano | findstr :5432`), or Docker and the native service will conflict.
-
-### 2. Configure `application.yml`
-
-Located at `src/main/resources/application.yml`. Defaults assume the Docker setup above:
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/teamflow
-    username: postgres
-    password: postgres
-```
-
-### 3. Run the app
-
-```bash
+cd intial
 ./mvnw spring-boot:run
 ```
 
-The app starts on `http://localhost:8080`. On first run, Hibernate auto-creates the schema (`ddl-auto: update`) — this is fine for local development but will be replaced with versioned Flyway migrations before production use.
+Runs on `http://localhost:8080`. Config is read from environment variables with local defaults baked into `application.yml` (see `DATABASE_URL`, `JWT_SECRET`, etc.).
 
-### 4. Test the API
+### Frontend
 
-**Register a user:**
+```bash
+cd teamflow-frontend
+npm install
+npm run dev
+```
+
+Runs on `http://localhost:5173`, configured via `.env.local` to call the local backend.
+
+### Quick API test
+
 ```bash
 curl -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password123","fullName":"Test User"}'
-```
 
-**Log in:**
-```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password123"}'
 ```
 
-**Access a protected route:**
-```bash
-curl http://localhost:8080/api/test/me \
-  -H "Authorization: Bearer <token from login response>"
-```
-
 ## Known Environment Gotchas (Windows)
 
-A few environment-specific issues surfaced during setup, documented here in case they recur:
-
-- **CRLF line endings** can silently corrupt values in `application.yml` (e.g., appending `\r` to a password). A `.gitattributes` (`* text=auto eol=lf`) is in place to prevent this going forward.
-- **JVM timezone naming**: Windows may report the system timezone using a legacy ID (e.g., `Asia/Calcutta`) that PostgreSQL's timezone database doesn't recognize, causing a connection failure. Fixed by forcing `TimeZone.setDefault(TimeZone.getTimeZone("UTC"))` at application startup — also good practice for storing unambiguous timestamps regardless of platform.
-- **Port conflicts**: a native PostgreSQL Windows service can bind to port 5432 alongside Docker's container, causing confusing authentication errors (the app may connect to the wrong Postgres instance entirely). Resolve by stopping the native service and setting it to manual start (`sc config <service-name> start=demand`).
+- **CRLF line endings** can silently corrupt values in `application.yml` (e.g., appending `\r` to a password). A `.gitattributes` (`* text=auto eol=lf`) prevents this.
+- **JVM timezone naming**: Windows may report the timezone using a legacy ID (e.g., `Asia/Calcutta`) that PostgreSQL doesn't recognize. Fixed by forcing `TimeZone.setDefault(TimeZone.getTimeZone("UTC"))` at startup.
+- **Port conflicts**: a native PostgreSQL Windows service can bind to port 5432 alongside Docker, causing misleading auth errors. Resolve via `sc config <service-name> start=demand`.
 
 ## License
 
-Personal learning project — not currently licensed for reuse.
+Personal learning/portfolio project — not currently licensed for reuse.
