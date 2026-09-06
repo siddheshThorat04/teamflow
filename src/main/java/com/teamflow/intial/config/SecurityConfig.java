@@ -89,7 +89,7 @@ public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
     configuration.setAllowedOrigins(List.of(
         "http://localhost:5173",
-        "https://YOUR-FRONTEND-URL-ONCE-DEPLOYED.onrender.com"
+        "https://teamflow-frontend-1zj6.onrender.com"
     ));
     configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(List.of("*"));
