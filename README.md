@@ -7,7 +7,24 @@ A full-stack, multi-tenant team collaboration and project management platform �
 **Frontend repo:** https://github.com/siddheshThorat04/teamflow-frontend
 **Backend repo:** https://github.com/siddheshThorat04/teamflow
 
-> Note: hosted on Render's free tier, so the first request after a period of inactivity may take 30-60 seconds to respond while the service spins back up.
+> Note: hosted on Render's free tier, so the backend may take a minute or two to respond on the first request after a period of inactivity while it spins back up. The frontend pings the backend on load to start this process early.
+
+## Screenshots
+
+**Sign in**
+![Login](https://raw.githubusercontent.com/siddheshThorat04/teamflow-frontend/main/docs/screenshots/login.png)
+
+**Dashboard — your organizations**
+![Dashboard](https://raw.githubusercontent.com/siddheshThorat04/teamflow-frontend/main/docs/screenshots/dashboard.png)
+
+**Organization — projects and members**
+![Organization detail](https://raw.githubusercontent.com/siddheshThorat04/teamflow-frontend/main/docs/screenshots/organization.png)
+
+**Kanban board**
+![Project board](https://raw.githubusercontent.com/siddheshThorat04/teamflow-frontend/main/docs/screenshots/board.png)
+
+**Task detail with comments**
+![Task detail](https://raw.githubusercontent.com/siddheshThorat04/teamflow-frontend/main/docs/screenshots/task-detail.png)
 
 ## Stack
 
@@ -15,7 +32,7 @@ A full-stack, multi-tenant team collaboration and project management platform �
 |---|---|
 | Frontend | React + TypeScript + Tailwind CSS |
 | Backend | Spring Boot (Java 17) |
-| Database | PostgreSQL |
+| Database | PostgreSQL (Neon, serverless) |
 | Auth | JWT (stateless) + Spring Security |
 | Containerization | Docker (multi-stage build) |
 | Deployment | Render (separate frontend/backend services) |
@@ -23,11 +40,13 @@ A full-stack, multi-tenant team collaboration and project management platform �
 ## Features
 
 - **Multi-tenant organizations** — users can belong to multiple organizations, each with independent membership and roles (`OWNER` / `ADMIN` / `MEMBER`)
-- **Role-based authorization** — enforced at the service layer; e.g., only `OWNER`/`ADMIN` can add members to an organization
+- **Member management** — view an organization's members and add existing users by email; restricted to `OWNER`/`ADMIN`
+- **Role-based authorization** — enforced at the service layer and reused across every module via a shared authorization service
 - **Projects** scoped to organizations, with unique per-org project keys (Jira-style: `WEB-1`, `WEB-2`, ...)
 - **Tasks** with status (`TODO` / `IN_PROGRESS` / `IN_REVIEW` / `DONE`), priority, due dates, assignee/reporter distinction, and sequential per-project numbering
+- **Comments** on tasks, threaded chronologically, scoped to organization membership
 - **JWT authentication** — registration, login, BCrypt password hashing, stateless token validation on every request
-- **React frontend** — protected routing, JWT session persistence, and a Kanban-style task board consuming the live API
+- **React frontend** — protected routing, JWT session persistence, Kanban-style task board, and an in-place task detail/edit modal with comments
 
 ## Architecture
 
@@ -40,34 +59,38 @@ com.teamflow.intial
 │ └── OrganizationAuthorizationService.java # shared membership/role checks
 ├── project/ # Projects (scoped to organizations)
 ├── task/ # Tasks (scoped to projects)
+├── comment/ # Comments (scoped to tasks)
 ├── config/
 │ └── SecurityConfig.java
 └── common/
 ├── BaseEntity.java
+├── HealthController.java # unauthenticated health check for cold-start warm-up
 └── exception/GlobalExceptionHandler.java
 
 
 **Key design decisions:**
 - Entities are never returned directly from controllers — dedicated request/response DTOs enforce a clean API boundary and prevent mass-assignment vulnerabilities.
-- Authorization logic (organization membership, role checks) is centralized in `OrganizationAuthorizationService` and reused across Organization, Project, and Task modules, rather than duplicated per-service.
+- Authorization logic (organization membership, role checks) is centralized in `OrganizationAuthorizationService` and reused across Organization, Project, Task, and Comment modules, rather than duplicated per-service.
 - Multi-tenancy is modeled via a join entity (`OrganizationMember`) rather than a simple many-to-many, since per-org roles require attributes on the relationship itself.
 - Passwords are hashed with BCrypt; plaintext is never logged, stored, or returned.
 - Authentication is fully stateless (JWT-based, no server-side sessions).
 - Configuration (database credentials, JWT secret, port) is fully externalized via environment variables — no secrets committed to the repo.
 - A global exception handler (`@RestControllerAdvice`) centralizes error formatting; Spring Security's own `accessDeniedHandler` is separately configured to ensure authorization failures also return structured JSON (Spring Security's filter-level exceptions bypass `@RestControllerAdvice` by default).
+- A public, unauthenticated `/api/health` endpoint lets the frontend warm up the backend on page load, mitigating Render's free-tier cold starts.
 
 ## Project Status
 
 ### Completed
-- [x] Multi-module backend: Auth, Organizations, Projects, Tasks
+- [x] Multi-module backend: Auth, Organizations (with member management), Projects, Tasks, Comments
 - [x] JWT authentication with role-based, membership-scoped authorization
-- [x] React frontend: auth flow, dashboard, org/project views, Kanban task board
+- [x] React frontend: auth flow, dashboard, org/project views, Kanban board, task detail modal with comments, member management
 - [x] Dockerized backend (multi-stage build) deployed to Render
 - [x] Frontend deployed to Render as a static site
 - [x] CORS configured for cross-origin frontend/backend communication
+- [x] Migrated to Neon Postgres (no-expiry free tier) for production
+- [x] Cold-start mitigation via health-check warm-up and a "waking up" UI indicator
 
 ### Up Next
-- [ ] Task detail view (comments, full edit)
 - [ ] Real-time updates (WebSocket)
 - [ ] Redis caching / online presence
 - [ ] Kafka-based async notifications
