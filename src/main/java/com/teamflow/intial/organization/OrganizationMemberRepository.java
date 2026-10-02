@@ -19,4 +19,6 @@ public interface OrganizationMemberRepository extends JpaRepository<Organization
            "JOIN FETCH om.organization " +
            "WHERE om.user.id = :userId")
     List<OrganizationMember> findByUserIdWithOrganization(@Param("userId") Long userId);
+    @Query("SELECT om FROM OrganizationMember om JOIN FETCH om.user WHERE om.organization.id = :orgId")
+    List<OrganizationMember> findByOrganizationIdWithUser(@Param("orgId") Long orgId);
 }

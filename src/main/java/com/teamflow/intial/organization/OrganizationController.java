@@ -11,7 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import com.teamflow.intial.organization.dto.AddMemberRequest;
 import java.util.List;
-
+import com.teamflow.intial.organization.dto.OrganizationMemberResponse;
 @RestController
 @RequestMapping("/api/organizations")
 @RequiredArgsConstructor
@@ -47,5 +47,13 @@ public class OrganizationController {
     ) {
         organizationService.addMember(slug, request, authentication.getName());
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+    @GetMapping("/{slug}/members")
+    public ResponseEntity<List<OrganizationMemberResponse>> listMembers(
+        @PathVariable String slug,
+        Authentication authentication
+    ) {
+        List<OrganizationMemberResponse> members = organizationService.getMembers(slug, authentication.getName());
+        return ResponseEntity.ok(members);
     }
 }

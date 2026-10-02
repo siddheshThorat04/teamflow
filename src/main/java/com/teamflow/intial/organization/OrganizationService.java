@@ -8,7 +8,7 @@ import com.teamflow.intial.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.teamflow.intial.organization.dto.OrganizationMemberResponse;
 import java.util.List;
 
 @Service
@@ -97,4 +97,14 @@ public class OrganizationService {
         }
         return slug;
     }
+    public List<OrganizationMemberResponse> getMembers(String orgSlug, String requesterEmail) {
+    Organization organization = orgAuth.requireOrganization(orgSlug);
+    User requester = orgAuth.requireUser(requesterEmail);
+    orgAuth.requireMembership(requester.getId(), organization.getId());
+
+    return organizationMemberRepository.findByOrganizationIdWithUser(organization.getId())
+            .stream()
+            .map(OrganizationMemberResponse::fromEntity)
+            .toList();
+}
 }
