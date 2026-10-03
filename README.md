@@ -52,21 +52,22 @@ A full-stack, multi-tenant team collaboration and project management platform �
 
 The backend follows a **feature-first (package-by-feature)** structure, so each domain's entity, repository, service, controller, and DTOs live together:
 
+```
 com.teamflow.intial
-├── auth/ # JWT generation/validation, login, filter
-├── user/ # User entity, registration
-├── organization/ # Organizations, membership, role-based auth checks
-│ └── OrganizationAuthorizationService.java # shared membership/role checks
-├── project/ # Projects (scoped to organizations)
-├── task/ # Tasks (scoped to projects)
-├── comment/ # Comments (scoped to tasks)
+├── auth/           # JWT generation/validation, login, filter
+├── user/           # User entity, registration
+├── organization/   # Organizations, membership, role-based auth checks
+│   └── OrganizationAuthorizationService.java   # shared membership/role checks
+├── project/        # Projects (scoped to organizations)
+├── task/           # Tasks (scoped to projects)
+├── comment/        # Comments (scoped to tasks)
 ├── config/
-│ └── SecurityConfig.java
+│   └── SecurityConfig.java
 └── common/
-├── BaseEntity.java
-├── HealthController.java # unauthenticated health check for cold-start warm-up
-└── exception/GlobalExceptionHandler.java
-
+    ├── BaseEntity.java
+    ├── HealthController.java            # unauthenticated health check for cold-start warm-up
+    └── exception/GlobalExceptionHandler.java
+```
 
 **Key design decisions:**
 - Entities are never returned directly from controllers — dedicated request/response DTOs enforce a clean API boundary and prevent mass-assignment vulnerabilities.
