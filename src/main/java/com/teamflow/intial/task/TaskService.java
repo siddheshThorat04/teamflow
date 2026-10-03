@@ -22,7 +22,8 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final OrganizationAuthorizationService orgAuth;
-
+    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+    
     @Transactional
     public TaskResponse createTask(Long projectId, CreateTaskRequest request, String reporterEmail) {
         Project project = projectRepository.findById(projectId)
@@ -51,6 +52,7 @@ public class TaskService {
         task.setAssignee(assignee);
 
         Task saved = taskRepository.save(task);
+        messagingTemplate.convertAndSend("/topic/projects/" + project.getId() + "/tasks", TaskResponse.fromEntity(saved));
         return TaskResponse.fromEntity(saved);
     }
     @Transactional
@@ -88,6 +90,7 @@ public TaskResponse updateTask(Long projectId, Long taskId, UpdateTaskRequest re
     }
 
     Task saved = taskRepository.save(task);
+    messagingTemplate.convertAndSend("/topic/projects/" + task.getProject().getId() + "/tasks", TaskResponse.fromEntity(saved));
     return TaskResponse.fromEntity(saved);
 }
 
