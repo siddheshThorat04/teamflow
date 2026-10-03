@@ -45,6 +45,7 @@ A full-stack, multi-tenant team collaboration and project management platform �
 - **Projects** scoped to organizations, with unique per-org project keys (Jira-style: `WEB-1`, `WEB-2`, ...)
 - **Tasks** with status (`TODO` / `IN_PROGRESS` / `IN_REVIEW` / `DONE`), priority, due dates, assignee/reporter distinction, and sequential per-project numbering
 - **Comments** on tasks, threaded chronologically, scoped to organization membership
+- **Live updates** — task changes broadcast in real time to everyone viewing a project board via WebSocket (STOMP/SockJS), no refresh needed
 - **JWT authentication** — registration, login, BCrypt password hashing, stateless token validation on every request
 - **React frontend** — protected routing, JWT session persistence, Kanban-style task board, and an in-place task detail/edit modal with comments
 
@@ -90,6 +91,7 @@ com.teamflow.intial
 - [x] CORS configured for cross-origin frontend/backend communication
 - [x] Migrated to Neon Postgres (no-expiry free tier) for production
 - [x] Cold-start mitigation via health-check warm-up and a "waking up" UI indicator
+- [x] Real-time task updates via WebSocket (STOMP/SockJS)
 
 ### Up Next
 - [ ] Real-time updates (WebSocket)
